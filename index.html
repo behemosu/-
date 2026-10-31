@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>資産運用体験</title>
+<style>
+:root{--bg:#f1f3f6;--card:#fff;--ink:#20242a;--muted:#68717d;--blue:#087cff;--red:#e5484d;--black:#30343b;--green:#138a36;--line:#e4e7ec}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+header{background:#08aeb4;color:white;padding:16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0002;display:flex;justify-content:space-between;align-items:center}
+h1{font-size:21px;margin:0 0 4px}header small{opacity:.9}
+.help-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.help-btn:hover{background:rgba(255,255,255,0.35)}
+main{max-width:850px;margin:auto;padding:12px}
+.card{background:var(--card);border-radius:15px;padding:15px;margin:0 0 12px;box-shadow:0 2px 7px #00000012}
+h2{font-size:17px;margin:0 0 12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#f6f8fa;border-radius:10px;padding:10px;text-align:center}.stat span{display:block;color:var(--muted);font-size:12px}.stat b{font-size:20px}
+.green{color:var(--green)}.redtxt{color:var(--red)}.blacktxt{color:var(--black)}
+button{border:0;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:700;background:var(--blue);color:white;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#e9eef5;color:#27313d}.danger{background:#b8323a}.full{width:100%}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+label{font-size:13px;color:var(--muted);display:block;margin:8px 0 4px}
+input,select{width:100%;border:1px solid #ccd3dc;border-radius:9px;padding:10px;font-size:16px;background:white;color:var(--ink)}
+.field{min-width:110px;flex:1}
+.notice{background:#f0f7ff;border-left:4px solid var(--blue);padding:10px;border-radius:8px;font-size:13px;line-height:1.6}
+.boardwrap{overflow-x:auto;padding-bottom:5px}
+.board{display:grid;grid-template-columns:repeat(41,minmax(25px,1fr));gap:2px;min-width:720px}
+.cell{height:42px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;position:relative}
+.cell.red{background:#e76b70}.cell.black{background:#555b64}.cell.zero{background:#dfe4ea;color:#30343b;font-weight:800}
+.cell .stones{position:absolute;bottom:2px;font-size:9px;letter-spacing:-2px}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:8px}
+.set{border:1px solid var(--line);border-radius:11px;padding:11px;margin:9px 0}
+.sethead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pill{font-size:12px;padding:4px 8px;border-radius:20px;background:#edf1f5}
+.history{font-size:13px;line-height:1.6;max-height:280px;overflow:auto}
+.historyline{border-bottom:1px solid var(--line);padding:7px 0}
+.bigdraw{font-size:28px;font-weight:800;text-align:center;padding:10px}
+.small{font-size:12px;color:var(--muted);line-height:1.55}
+.hidden{display:none!important}
+
+/* モーダル表示用スタイル */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+.modal-content{background:#fff;border-radius:16px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:0 10px 25px rgba(0,0,0,0.2)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.modal-header h2{margin:0;font-size:20px;color:var(--ink)}
+.close-btn{background:none;border:none;font-size:24px;color:var(--muted);cursor:pointer;padding:0 8px;line-height:1}
+.rule-section{margin-bottom:20px}
+.rule-section h3{font-size:15px;color:var(--blue);margin:0 0 8px;border-left:3px solid var(--blue);padding-left:8px}
+.rule-section ul{margin:0;padding-left:200px;list-style:disc}
+.rule-section ol{margin:0;padding-left:20px}
+.rule-section li{font-size:13.5px;line-height:1.6;margin-bottom:6px;color:#333}
+
+@media(min-width:650px){main{padding:18px}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.two>.card{margin-bottom:12px}}
+</style>
+</head>
+<body>
+<header>
+ <div>
+  <h1>資産運用体験</h1>
+  <small>赤・黒の流れを読み、石を進めよう</small>
+ </div>
+ <button class="help-btn" id="openModalBtn">❓ 遊び方</button>
+</header>
+<main>
+<section class="card">
+ <div class="stats">
+  <div class="stat"><span>ゲーム数</span><b id="gameNo">1 / 5</b></div>
+  <div class="stat"><span>総持ち点</span><b id="points" class="green">100.0 点</b></div>
+  <div class="stat"><span>ドロー回数</span><b id="drawNo">0 / 20</b></div>
+ </div>
+ <p id="trendInfo" style="margin:12px 0 0;font-weight:700">トレンド：未決定｜数札構成：未決定</p>
+ <p id="status" class="notice" style="margin-bottom:0">「新しいゲーム」を押して準備を始めてください。</p>
+</section>
+  
+<section class="card" id="prepare">
+ <h2>ゲーム準備</h2>
+ <div class="row">
+  <button class="full" id="newGameBtn">新しいゲームを開始（参加費1点）</button>
+  <button class="secondary full" id="resetBtn">最初からリセット</button>
+ </div>
+ <p class="small">5ゲームごとにトレンドと数字札構成を再抽選します。1ゲーム開始ごとに参加費として持ち点から1点が差し引かれます。</p>
+</section>
+  
+<section class="card hidden" id="prediction">
+ <h2>予想フェーズ（最初のセット）</h2>
+ <div class="row">
+  <div class="field"><label>20回目にいると予想する色</label><select id="predictionColor"><option value="red">赤</option><option value="black">黒</option></select></div>
+  <div class="field"><label id="winTargetLabel">予想色の目標値（1～20）</label><input id="targetWin" type="number" min="1" max="20" value="10"></div>
+  <div class="field"><label id="loseTargetLabel">反対色の目標値（1～20）</label><input id="targetLose" type="number" min="1" max="20" value="10"></div>
+ </div>
+ <div class="row">
+  <div class="field"><label>賭け点＝倍率（上限：持ち点の25%、端数切上げ）</label><input id="betFirst" type="number" min="1" value="25"></div>
+ </div>
+ <p class="small">賭け点は得点計算に掛ける倍率として扱います。得点は「目標値 × 0.1 × 倍率」で計算されます。</p>
+ <button class="full" id="confirmPrediction">予想を確定してドロー開始</button>
+</section>
+  
+<section class="card hidden" id="play">
+ <h2>ドローフェーズ</h2>
+ <div class="row">
+  <div class="stat"><span>今回の色札</span><b id="lastColor">—</b></div>
+  <div class="stat"><span>今回の数札</span><b id="lastNumber">—</b></div>
+  <div class="stat"><span>残り</span><b id="remaining">20 回</b></div>
+ </div>
+ <div class="bigdraw" id="drawSummary">ドロー待機中</div>
+ <button class="full" id="drawBtn">色札・数字札を1枚ずつ引く</button>
+ <div class="row" style="margin-top:8px">
+  <button class="secondary" id="addSetBtn">追加セットを賭けて増やす（追加費1点）</button>
+  <button class="secondary" id="endEarlyBtn">ゲームを途中終了</button>
+ </div>
+ <p class="small">追加セットは最大10セット。追加するごとに追加費として1点が差し引かれ、追加時点の持ち点を基準に賭け点の上限（25%）を計算します。</p>
+</section>
+  
+<section class="card">
+ <h2>盤面（赤20マス・黒20マス）</h2>
+ <div class="boardwrap"><div class="board" id="board"></div></div>
+ <div class="legend"><span>■ 赤ゾーン（+1～+20）</span><span>■ 黒ゾーン（-1～-20）</span><span>□ 0</span></div>
+</section>
+  
+<section class="card">
+ <h2>セット状況</h2>
+ <div id="sets"><p class="small">ゲーム開始後に表示されます。</p></div>
+</section>
+  
+<section class="card hidden" id="addPanel">
+ <h2>追加セットの設定（追加費1点）</h2>
+ <div class="row">
+  <div class="field"><label>予想色</label><select id="addColor"><option value="red">赤</option><option value="black">黒</option></select></div>
+  <div class="field"><label id="addWinLabel">予想色の目標値</label><input id="addWin" type="number" min="1" max="20" value="10"></div>
+  <div class="field"><label id="addLoseLabel">反対色の目標値</label><input id="addLose" type="number" min="1" max="20" value="10"></div>
+  <div class="field"><label>賭け点＝倍率</label><input id="addBet" type="number" min="1" value="1"></div>
+ </div>
+ <div class="row" style="margin-top:10px"><button id="confirmAdd">この設定で追加（1点支払い）</button><button class="secondary" id="cancelAdd">キャンセル</button></div>
+</section>
+  
+<section class="card hidden" id="result">
+ <h2>ゲーム結果</h2><div id="resultText"></div>
+ <button class="full" id="nextGameBtn">次のゲームへ</button>
+</section>
+  
+<section class="card">
+ <h2>ゲーム履歴</h2><div class="history" id="history"><span class="small">ゲームを開始してください。</span></div>
+</section>
+</main>
+
+<!-- 遊び方の説明モーダル -->
+<div class="modal-overlay hidden" id="helpModal">
+ <div class="modal-content">
+  <div class="modal-header">
+   <h2>🃏 「資産運用体験」の遊び方・ルール</h2>
+   <button class="close-btn" id="closeModalBtn">&times;</button>
+  </div>
+  
+  <div class="rule-section">
+   <h3>1. ゲームの目的</h3>
+   <p style="font-size:13.5px;line-height:1.6;margin:0 0 8px;">
+    赤と黒の「色札」と「数札」のめくり結果によって移動する盤面上の「石」の位置を予測し、持ち点を増やす戦略カードゲームです。
+   </p>
+  </div>
+
+  <div class="rule-section">
+   <h3>2. 基本的な流れ</h3>
+   <ol>
+    <td><b>ゲーム準備</b>: 「新しいゲームを開始」を押すと参加費として持ち点から <b>1点</b> 消費されます。（5ゲームごとに「トレンド」と「数字札の構成」が決定されます）</td>
+    <td><b>予想フェーズ</b>: 石が最終的（または途中）にどちらのゾーンへ何マス進むかを予測し、「予想色」「目標値」「反対色の目標値」「賭け点（倍率）」を設定します。</td>
+    <td><b>ドローフェーズ</b>: ボタンを押して「色札」と「数札」を1枚ずつ引き、石を移動させます（最大20回）。赤ならプラス（右）、黒ならマイナス（左）へ進みます。</td>
+   </ol>
+  </div>
+
+  <div class="rule-section">
+   <h3>3. 勝敗と目標値の判定</h3>
+   <ol>
+    <td><b>予想色の目標到達（勝利）</b>: 予想した色の方向へ、設定した目標値以上に石が進むとその場でセット勝利となり、得点を獲得します。</td>
+    <td><b>反対色の目標到達（敗北）</b>: 予想と反対側へ設定した目標値以上に石が進むと、セット失敗（敗北）となり、ペナルティ（失点）を受けます。</td>
+    <td><b>20回終了時の精算</b>: 20回のドローが終わるまでにどちらの目標値にも達しなかった場合、その時点での石の位置（1マスあたり0.1×倍率）で評価・精算されます。</td>
+   </ol>
+  </div>
+
+  <div class="rule-section">
+   <h3>4. 得点と倍率（賭け点）</h3>
+   <ol>
+    <td><b>賭け点（倍率）</b>: 予想時に設定する賭け点は、得点計算時の掛け算の倍率になります（上限は現在持ち点の25%）。</td>
+    <td><b>勝利時</b>: <code>予想色の目標値 × 0.1 × 賭け倍率</code> のプラス得点。</td>
+    <td><b>敗北時</b>: <code>反対色の目標値 × 0.1 × 賭け倍率</code> のマイナス得点。</td>
+   </ol>
+  </div>
+
+  <div class="rule-section">
+   <h3>5. 特殊機能・応用ルール</h3>
+   <ol>
+    <td><b>追加セット</b>: ドローの途中で追加費1点を支払うことで、新たな予想セットを最大10個まで追加・同時運用できます。リスク分散や追い賭けに利用できます。</td>
+    <td><b>途中終了</b>: 「ゲームを途中終了」を選択すると、その時点の石の位置で即座に精算してゲームを終えられます。</td>
+    <td><b>⚡ 特異ゲーム</b>: サイコロの出目によって稀に発生する特殊モードです。数字札に「5〜10」が加わり、目標値が最大40まで拡大されます。さらに高数字札を引くと「次回の1禁止」や「引いた色が優勢（60%）」などの特異効果が発動します。</td>
+   </ol>
+  </div>
+
+  <button class="full secondary" id="modalCloseBtnBottom" style="margin-top:10px">閉じる</button>
+ </div>
+</div>
+
+<script>
+window.addEventListener("error", function(ev){
+  const status = document.getElementById("status");
+  if(status) status.textContent = "動作エラー：" + (ev.message || "JavaScriptを実行できませんでした。");
+});
+const $=id=>document.getElementById(id);
+
+// モーダルの開閉処理
+const helpModal = $("helpModal");
+$("openModalBtn").onclick = () => helpModal.classList.remove("hidden");
+$("closeModalBtn").onclick = () => helpModal.classList.add("hidden");
+$("modalCloseBtnBottom").onclick = () => helpModal.classList.add("hidden");
+helpModal.onclick = (e) => { if(e.target === helpModal) helpModal.classList.add("hidden"); };
+
+let points=100.0, game=1, drawCount=0, trend=null, numberMode=null, colorCounts=null, numberDeck=[];
+let sets=[], history=[], active=false, gameOver=false, lastDraw=null, roundStartPoints=100.0;
+let isSingularGame = false; 
+let skipNextOne = false;     
+let ignoreTrendNext = false; 
+let lastPulledHighCard = false; 
+let lastPulledHighColor = null;
+
+const colorName=c=>c==="red"?"赤":"黒";
+const other=c=>c==="red"?"black":"red";
+const ceil25=p=>Math.max(1,Math.ceil(Math.max(0,p)*.25));
+
+function clampTarget(v){
+  let maxLimit = isSingularGame ? 40 : 20;
+  return Math.max(1,Math.min(maxLimit,Math.floor(Number(v)||1)));
+}
+function rand(n){return Math.floor(Math.random()*n);}
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=rand(i+1);[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+function updateTop(){
+ $("gameNo").textContent=`${game} / 5`;
+ $("points").textContent=`${points.toFixed(1)} 点`;
+ $("points").className=points>0?"green": "redtxt";
+ $("drawNo").textContent=`${drawCount} / 20`;
+ let singularTag = isSingularGame ? " ⚡【特異ゲーム】" : "";
+ $("trendInfo").textContent=`トレンド：${trend?trend:"未決定"}${singularTag}｜数札構成：${numberMode?numberMode:"未決定"}`;
+ $("remaining").textContent=`${20-drawCount} 回`;
+}
+
+function buildBoard(){
+ const b=$("board");b.innerHTML="";
+ for(let x=-20;x<=20;x++){
+  let d=document.createElement("div");d.className="cell "+(x===0?"zero":x>0?"red":"black");
+  d.dataset.pos=x;d.innerHTML=x===0?"0":(x>0?`赤${x}`:`黒${Math.abs(x)}`);
+  b.appendChild(d);
+ }
+ renderBoard();
+}
+
+function renderBoard(){
+ document.querySelectorAll(".cell").forEach(c=>{
+  const pos=Number(c.dataset.pos), occupants=sets.filter(s=>s.pos===pos&&!s.settled);
+  let old=c.querySelector(".stones");if(old)old.remove();
+  if(occupants.length){let st=document.createElement("span");st.className="stones";st.textContent=occupants.map(s=>String(s.id)).join(" ");c.appendChild(st);}
+ });
+}
+
+function getCurrentFloatingScore(s) {
+ if(s.settled) return s.score;
+ if(s.pos === 0) return 0;
+ let isPredSide = (s.pos > 0 ? "red" : "black") === s.pred;
+ let val = Math.abs(s.pos) * 0.1 * s.bet;
+ return isPredSide ? val : -val;
+}
+
+function renderSets(){
+ const box=$("sets");
+ if(!sets.length){box.innerHTML='<p class="small">ゲーム開始後に表示されます。</p>';return;}
+ box.innerHTML=sets.map(s=>{
+  let pos=s.pos===0?"0":s.pos>0?`赤 ${s.pos}`:`黒 ${Math.abs(s.pos)}`;
+  let state=s.settled?`終了：${s.outcome}`:"進行中";
+  
+  let floatingScore = getCurrentFloatingScore(s);
+  let floatingText = s.settled ? "" : ` ｜ 現在の評価: <b class="${floatingScore>=0?"green":"redtxt"}">${floatingScore>=0?"+":""}${floatingScore.toFixed(1)} 点</b>`;
+
+  return `<div class="set"><div class="sethead"><b>セット${s.id}</b><span class="pill">${state}</span></div>
+  <div>石の位置：<b>${pos}</b>　｜ 予想：<b>${colorName(s.pred)}</b>${floatingText}</div>
+  <div class="small">予想色目標 ${s.winTarget} / 反対色目標 ${s.loseTarget} ｜ 賭け倍率 ${s.bet}x ${s.added?"（追加セット費1点）":"（初期）"}</div>
+  ${s.settled?`<b class="${s.score>=0?"green":"redtxt"}">${s.score>=0?"+":""}${s.score.toFixed(1)} 点</b>`:""}</div>`;
+ }).join("");
+}
+
+function setStatus(t){$("status").textContent=t;}
+
+function drawSetup(){
+ const trendDraw=shuffle(["red","red","black","black"]).slice(0,2);
+ trend=trendDraw[0]===trendDraw[1]?(trendDraw[0]==="red"?"赤トレンド":"黒トレンド"):"ハーフ";
+ if(trend==="赤トレンド")colorCounts={red:11,black:9};
+ else if(trend==="黒トレンド")colorCounts={red:9,black:11};
+ else colorCounts={red:10,black:10};
+
+ const die1 = rand(6) + 1;
+ let highCardCount = 0; 
+ isSingularGame = false;
+
+ if (die1 === 6) {
+  const die2 = rand(6) + 1;
+  if (die2 === 6) {
+   isSingularGame = true;
+   highCardCount = 2; 
+  } else {
+   highCardCount = 1; 
+  }
+ }
+
+ if (highCardCount === 2) {
+  numberMode = "1～3＋5～10（各2枚・52枚）";
+ } else if (highCardCount === 1) {
+  numberMode = "1～3＋5～10（各1枚・46枚）";
+ } else {
+  numberMode = "1～3（40枚）";
+ }
+
+ numberDeck=[];
+ for(let i=0;i<20;i++)numberDeck.push(1);
+ for(let i=0;i<14;i++)numberDeck.push(2);
+ for(let i=0;i<6;i++)numberDeck.push(3);
+ 
+ if(highCardCount > 0) {
+  for(let n=5; n<=10; n++) {
+   numberDeck.push(n);
+   if(highCardCount === 2) {
+    numberDeck.push(n); 
+   }
+  }
+ }
+ numberDeck=shuffle(numberDeck);
+
+ let maxLimit = isSingularGame ? 40 : 20;
+ $("targetWin").max = maxLimit;
+ $("targetLose").max = maxLimit;
+ $("addWin").max = maxLimit;
+ $("addLose").max = maxLimit;
+ $("winTargetLabel").textContent = `予想色の目標値（1～${maxLimit}）`;
+ $("loseTargetLabel").textContent = `反対色の目標値（1～${maxLimit}）`;
+ $("addWinLabel").textContent = `予想色の目標値（1～${maxLimit}）`;
+ $("addLoseLabel").textContent = `反対色の目標値（1～${maxLimit}）`;
+}
+
+function startNewGame(){
+ if(active){if(!confirm("進行中のゲームを終了して新しいゲームを始めますか？"))return;}
+ if(points<=0){setStatus("持ち点が0点以下のためゲームを開始できません。最初からリセットしてください。");return;}
+ 
+ points -= 1;
+ history.push({game, draw:0, set:0, score:-1, reason:"ゲーム参加費", pos:0});
+  
+ setStatus("ゲームを準備しています…");
+ drawCount=0;sets=[];lastDraw=null;active=false;gameOver=false;roundStartPoints=points;
+ skipNextOne = false;
+ ignoreTrendNext = false;
+ lastPulledHighCard = false;
+ lastPulledHighColor = null;
+
+ if((game-1)%5===0 || !trend)drawSetup();
+ $("prepare").classList.add("hidden");$("prediction").classList.remove("hidden");$("play").classList.add("hidden");$("result").classList.add("hidden");$("addPanel").classList.add("hidden");
+ $("betFirst").value=ceil25(points);$("betFirst").max=ceil25(points);
+ $("targetWin").value=10;$("targetLose").value=10;$("predictionColor").value="red";
+ 
+ let modeMsg = isSingularGame ? "【特異ゲーム発動！】参加費1点を支払い、目標値を1〜40で設定できます（5-10各2枚構成＆特殊ルール有効）。" : "参加費1点を支払い、トレンドと数字札の構成が決まりました。";
+ setStatus(modeMsg + " 予想と目標値、賭け倍率を設定してください。");
+ updateTop();renderSets();renderBoard();
+}
+
+function validBet(value,base){
+ const max=ceil25(base),n=Math.floor(Number(value));
+ if(!Number.isFinite(n)||n<1||n>max){alert(`賭け倍率は1～${max}の範囲で入力してください。`);return null;}return n;
+}
+
+$("confirmPrediction").onclick=()=>{
+ let pred=$("predictionColor").value,bet=validBet($("betFirst").value,points);if(bet===null)return;
+ let s={id:1,pos:0,pred,winTarget:clampTarget($("targetWin").value),loseTarget:clampTarget($("targetLose").value),bet,added:false,settled:false,score:0,outcome:""};
+ sets=[s];active=true;
+ $("prediction").classList.add("hidden");$("play").classList.remove("hidden");
+ setStatus("ゲーム開始！色札と数字札を引いてください。");
+ updateTop();renderSets();renderBoard();
+};
+
+function pullColor(){
+ if (isSingularGame && ignoreTrendNext) {
+  if (lastPulledHighColor === "red") {
+   return rand(10) < 6 ? "red" : "black";
+  } else if (lastPulledHighColor === "black") {
+   return rand(10) < 6 ? "black" : "red";
+  }
+ }
+ let total=colorCounts.red+colorCounts.black;
+ return rand(total)<colorCounts.red?"red":"black";
+}
+
+function pullNumber(){
+ if (isSingularGame && skipNextOne) {
+  let filtered = numberDeck.filter(n => n !== 1);
+  if(filtered.length === 0) return 2; 
+  let idx = rand(filtered.length);
+  return filtered[idx];
+ }
+ return numberDeck[rand(numberDeck.length)];
+}
+
+function settle(s,reason){
+ if(s.settled)return;
+ let score=0;
+ if(reason==="win"){
+  score = s.winTarget * 0.1 * s.bet;
+  s.outcome="予想色の目標到達";
+ }
+ else if(reason==="lose"){
+  score = -(s.loseTarget * 0.1 * s.bet);
+  s.outcome="反対色の目標到達";
+ }
+ else{
+  if(s.pos===0) {
+   score = 0;
+  } else {
+   let isPredSide = (s.pos > 0 ? "red" : "black") === s.pred;
+   let val = Math.abs(s.pos) * 0.1 * s.bet;
+   score = isPredSide ? val : -val;
+  }
+  s.outcome="20回終了／任意終了";
+ }
+ s.score=score;
+ s.settled=true;
+ points += score;
+ history.push({game,draw:drawCount,set:s.id,score,reason:s.outcome,pos:s.pos});
+}
+
+function checkTargets(s){
+ if(s.settled)return;
+ if(s.pos>0&&s.pred==="red"&&s.pos>=s.winTarget){settle(s,"win");return;}
+ if(s.pos<0&&s.pred==="black"&&Math.abs(s.pos)>=s.winTarget){settle(s,"win");return;}
+ if(s.pos>0&&s.pred==="black"&&s.pos>=s.loseTarget){settle(s,"lose");return;}
+ if(s.pos<0&&s.pred==="red"&&Math.abs(s.pos)>=s.loseTarget){settle(s,"lose");return;}
+}
+
+function doDraw(){
+ if(!active||gameOver)return;
+ if(!sets.some(s=>!s.settled)){finishGame("すべてのセットが終了しました。");return;}
+ 
+ if (isSingularGame && lastPulledHighCard) {
+  skipNextOne = true;       
+  ignoreTrendNext = true;   
+  lastPulledHighCard = false;
+ } else {
+  skipNextOne = false;
+  ignoreTrendNext = false;
+  lastPulledHighColor = null;
+ }
+
+ const color=pullColor(),num=pullNumber();
+ drawCount++;
+
+ if (isSingularGame && num >= 5 && num <= 10) {
+  lastPulledHighCard = true;
+  lastPulledHighColor = color;
+ }
+
+ for(const s of sets){
+  if(!s.settled){
+   s.pos+=color==="red"?num:-num;
+   checkTargets(s);
+  }
+ }
+ lastDraw={color,num};
+ $("lastColor").textContent=colorName(color);$("lastColor").className=color==="red"?"redtxt":"blacktxt";
+ $("lastNumber").textContent=num;
+ 
+ let extraEffectText = "";
+ if (isSingularGame && skipNextOne) extraEffectText = ` ⚡【特異効果：次回の1禁止＆${colorName(lastPulledHighColor)}優勢(60%)】`;
+ $("drawSummary").textContent=`${colorName(color)}に ${num} マス進む` + extraEffectText;
+
+ let currentTotalFloating = 0;
+ for(const s of sets){
+  if(!s.settled){
+   currentTotalFloating += getCurrentFloatingScore(s);
+  }
+ }
+ let estimatedPoints = roundStartPoints + currentTotalFloating;
+ if(estimatedPoints <= 0){
+  for(const s of sets){
+   if(!s.settled) settle(s, "final");
+  }
+  finishGame("含み損が持ち点を超えたため、破産終了しました。");
+  return;
+ }
+
+ if(points<=0){finishGame("持ち点が0点以下になったため破産終了です。");return;}
+ if(drawCount>=20){
+  for(const s of sets)if(!s.settled)settle(s,"final");
+  finishGame("20回目のドローが終了しました。");return;
+ }
+ if(!sets.some(s=>!s.settled)){finishGame("全セットが目標値に到達しました。");return;}
+ $("addSetBtn").disabled=sets.length>=10;
+ setStatus(`第${drawCount}ドロー：${colorName(color)} ${num}。`);
+ updateTop();renderSets();renderBoard();
+}
+
+function finishGame(message){
+ active=false;gameOver=true;
+ $("play").classList.add("hidden");$("addPanel").classList.add("hidden");$("result").classList.remove("hidden");
+ const total=sets.reduce((a,s)=>a+s.score,0);
+ $("resultText").innerHTML=`<p>${message}</p><p>このゲームのセット収支：<b class="${total>=0?"green":"redtxt"}">${total>=0?"+":""}${total.toFixed(1)} 点</b>（参加費等含む）</p><p>ゲーム終了時の持ち点：<b>${points.toFixed(1)} 点</b></p>`+
+ sets.map(s=>`<div class="historyline">セット${s.id}：${s.outcome}／${s.score>=0?"+":""}${s.score.toFixed(1)}点（倍率${s.bet}x）</div>`).join("");
+ $("nextGameBtn").textContent=points<=0?"持ち点0点：最初からリセット":"次のゲームへ";
+ setStatus(message);updateTop();renderSets();renderBoard();
+}
+
+$("drawBtn").onclick=doDraw;
+$("addSetBtn").onclick=()=>{
+ if(!active||sets.length>=10||drawCount>=20)return;
+ if(points<=0){alert("持ち点が0点以下のため追加セットを行えません。");return;}
+ $("addPanel").classList.remove("hidden");
+ $("addBet").value=ceil25(points);$("addBet").max=ceil25(points);
+ $("addColor").value=$("predictionColor").value;
+};
+$("cancelAdd").onclick=()=>$("addPanel").classList.add("hidden");
+$("confirmAdd").onclick=()=>{
+ if(!active||sets.length>=10)return;
+ if(points<=0){alert("持ち点が0点以下のため追加セットを行えません。");$("addPanel").classList.add("hidden");return;}
+ 
+ points -= 1;
+ history.push({game, draw:drawCount, set:sets.length+1, score:-1, reason:"追加セット費", pos:0});
+
+ let bet=validBet($("addBet").value,points);
+ if(bet===null){
+  points += 1;
+  history.pop();
+  return;
+ }
+ const pred=$("addColor").value;
+ sets.push({id:sets.length+1,pos:0,pred,winTarget:clampTarget($("addWin").value),loseTarget:clampTarget($("addLose").value),bet,added:true,settled:false,score:0,outcome:""});
+ $("addPanel").classList.add("hidden");$("addSetBtn").disabled=sets.length>=10;
+ setStatus(`セット${sets.length}を追加しました（追加費1点支払）。`);
+ updateTop();renderSets();renderBoard();
+};
+$("endEarlyBtn").onclick=()=>{
+ if(!active)return;
+ if(!confirm("この時点でゲームを終了し、未到達セットを現在位置で精算しますか？"))return;
+ for(const s of sets)if(!s.settled)settle(s,"final");
+ finishGame("任意終了：現在の石の位置で精算しました。");
+};
+$("nextGameBtn").onclick=()=>{
+ if(points<=0){setStatus("持ち点0点です。最初からリセットしてください。");$("result").classList.add("hidden");$("prepare").classList.remove("hidden");return;}
+ game++;startNewGame();
+};
+$("newGameBtn").addEventListener("click",()=>{
+ try { startNewGame(); }
+ catch(e) { setStatus("開始時エラー：" + e.message); console.error(e); }
+});
+$("resetBtn").onclick=()=>{
+ if(!confirm("持ち点100点・第1ゲームに戻します。よろしいですか？"))return;
+ points=100.0;game=1;drawCount=0;trend=null;numberMode=null;colorCounts=null;numberDeck=[];sets=[];history=[];active=false;gameOver=false;
+ isSingularGame=false; skipNextOne=false; ignoreTrendNext=false; lastPulledHighCard=false; lastPulledHighColor=null;
+ $("prepare").classList.remove("hidden");$("prediction").classList.add("hidden");$("play").classList.add("hidden");$("result").classList.add("hidden");$("addPanel").classList.add("hidden");
+ $("history").innerHTML='<span class="small">ゲームを開始してください。</span>';
+ setStatus("「新しいゲーム」を押して準備を始めてください。");updateTop();renderSets();renderBoard();
+};
+function renderHistory(){
+ $("history").innerHTML=history.slice().reverse().map(h=>h.draw===0?`<div class="historyline">ゲーム${h.game}：${h.reason}（-1点）</div>`:h.reason==="追加セット費"?`<div class="historyline">ゲーム${h.game}・${h.draw}回目：${h.reason}（-1点）</div>`:`<div class="historyline">ゲーム${h.game}・${h.draw}回目・セット${h.set}：${h.reason}／${h.score>=0?"+":""}${h.score.toFixed(1)}点</div>`).join("")||'<span class="small">まだ履歴はありません。</span>';
+}
+const oldRenderSets=renderSets;
+renderSets=function(){oldRenderSets();renderHistory();};
+buildBoard();updateTop();
+</script>
+</body>
+</html>
